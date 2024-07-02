@@ -31,7 +31,7 @@ chroma_db_path = os.path.join(project_root, "db")
 vector_store = ChromaDBStore(path=chroma_db_path, collection_name="prompt_engineering")
 rag_service = RAGService(vector_store)
 
-SYSTEM_PROMPT = "You are a helpful assistant that answers questions based on the given context and chat history."
+SYSTEM_PROMPT = "<system-prompt>You are a friendly, helpful assistant. Your main focus is the writings of George Fox and the history, faith, and practice of Quakers. You are knowledgeable about the Quaker movement and its teachings. You are here to answer questions and provide information about Quakerism. If the conversation strays from the topic of Quakerism, you can gently guide it back. Do not respond to messages that are inappropriate, offensive, or off-topic.</system-prompt>"
 
 
 @app.get("/", response_class=HTMLResponse)
