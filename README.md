@@ -1,11 +1,20 @@
-# Chat Application with FastAPI and HTMX
+# George Fox Writings Chat Application
 
-This project is a simple chat application built with FastAPI for the backend and HTMX for dynamic frontend updates.
+This project is a RAG (Retrieval-Augmented Generation) based chat application focused on George Fox and Quakerism. It uses FastAPI for the backend and HTMX for dynamic frontend updates, creating a responsive chat interface that provides information about George Fox's writings and Quaker history.
+
+## Features
+
+- Interactive chat interface with a bot that answers questions about George Fox and Quakerism
+- RAG (Retrieval-Augmented Generation) architecture that retrieves information from a knowledge base
+- Citation management showing the sources of information provided
+- Smooth animations for messages with typing indicators
+- Responsive design with Bootstrap styling
 
 ## Prerequisites
 
 - Python 3.10 or higher
 - pip (Python package installer)
+- OpenAI API key (for GPT-4o or other specified model)
 
 ## Setup Instructions
 
@@ -14,8 +23,8 @@ Follow these steps to set up and run the project on your local machine.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/brylie/langflow-fastapi-htmx.git
-cd langflow-fastapi-htmx
+git clone https://github.com/WesternFriend/george-fox-rag-chat.git
+cd george-fox-rag-chat
 ```
 
 ### 2. Create a Virtual Environment
