@@ -91,7 +91,7 @@ texts/*.txt, *.text  (localfs.walk_dir, live=True)
         │  one processing component PER FILE (coco.mount_each), live-watched:
         │  re-triggered automatically when a file is added or its content changes
         ▼
-  read full file text                         [process_file, memo=True]
+  read full file text                         [process_file, not memoized]
         │
         ▼
   split into overlapping chunks                [SeparatorSplitter — see §5.2]
@@ -248,12 +248,19 @@ async def embed_chunk(text: str) -> list[float]:
     return vec.tolist()
 
 
-@coco.fn(memo=True)
+@coco.fn
 async def process_file(file: FileLike) -> None:
     """One processing component per source file (mounted by app_main via
     mount_each). Live mode re-invokes this only for files that are new or whose
-    content changed; memo=True additionally skips the body on an exact repeat
-    (e.g. the initial catch-up scan re-matching a previous run)."""
+    content changed. Deliberately NOT memoized, unlike embed_chunk: this function
+    ends in a Chroma upsert/delete side effect, and memo=True would skip that
+    body (and thus the write) on an exact repeat of a prior run's input — e.g.
+    after a manual `client.delete_collection()` (§9 open question 2) with the
+    CocoIndex memo cache still warm, silently leaving Chroma without those rows.
+    The chunking/embedding work is comparatively cheap and re-running it is safe;
+    only embed_chunk carries memo=True, since it's the one call worth skipping on
+    a cache hit (avoids a paid, network-bound OpenAI call) and it has no side
+    effects of its own."""
     text = await file.read_text()
     source = str(file.file_path.path)
 
@@ -272,9 +279,9 @@ async def process_file(file: FileLike) -> None:
     # Reconcile only THIS file's rows — diff by `source`, not the whole collection.
     existing = collection.get(where={"source": source}, include=[])
     stale_ids = set(existing["ids"]) - set(desired_ids)
-    if stale_ids:
-        collection.delete(ids=list(stale_ids))
 
+    # Upsert before delete: if upsert raises, the stale rows are still in place
+    # instead of having already been removed ahead of a write that didn't land.
     if desired_ids:
         collection.upsert(
             ids=desired_ids,
@@ -282,6 +289,9 @@ async def process_file(file: FileLike) -> None:
             metadatas=[{"source": source}] * len(chunks),
             embeddings=embeddings,
         )
+
+    if stale_ids:
+        collection.delete(ids=list(stale_ids))
 
 
 @coco.fn
@@ -303,6 +313,19 @@ app = coco.App(
 Run with `mise run ingest` (§5.5) — `cocoindex update ingestion/main.py --live` is what
 actually keeps the process alive to honor `live=True` above; without `--live` it still
 does the full catch-up pass and then exits.
+
+**Failure handling for the raw `collection.upsert`/`collection.delete` calls.** Neither
+call is wrapped in retry logic — an exception (e.g. a transient network error talking to
+the embedded Chroma) propagates out of `process_file` and fails that file's component for
+the current run. Recovery is a rerun, not a manual patch: `desired_ids` are content-hashed
+(§5.3), so `collection.upsert` is idempotent and a rerun reproduces the same rows. Given
+the upsert-before-delete ordering above, a failure has two possible shapes:
+
+- **`upsert` raises** — nothing changed yet; the file's existing (now-stale-by-content)
+  rows are untouched. A rerun retries the same upsert.
+- **`delete` raises** — the new rows already landed; only the stale ids remain
+  (temporarily duplicated content for this source, not lost data). A rerun recomputes the
+  same `stale_ids` and retries the delete.
 
 ## 7. Known limitations
 
