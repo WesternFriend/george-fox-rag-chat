@@ -13,7 +13,7 @@ This project is a RAG (Retrieval-Augmented Generation) based chat application fo
 ## Prerequisites
 
 - Python 3.10 or higher
-- pip (Python package installer)
+- [uv](https://docs.astral.sh/uv/) (Python package and project manager)
 - OpenAI API key (for GPT-4o or other specified model)
 
 ## Setup Instructions
@@ -27,49 +27,31 @@ git clone https://github.com/WesternFriend/george-fox-rag-chat.git
 cd george-fox-rag-chat
 ```
 
-### 2. Create a Virtual Environment
+### 2. Install Dependencies
 
-#### Windows
-```bash
-python -m venv venv
-```
-
-#### macOS and Linux
-```bash
-python3 -m venv venv
-```
-
-### 3. Activate the Virtual Environment
-
-#### Windows
-```bash
-venv\Scripts\activate
-```
-
-#### macOS and Linux
-```bash
-source venv/bin/activate
-```
-
-### 4. Install Dependencies
-
-With the virtual environment activated, install the project dependencies:
+`uv` creates and manages the virtual environment automatically:
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
-### 5. Run the Application
+### 3. Configure Environment Variables
+
+```bash
+cp .env.example .env   # then set OPENAI_API_KEY
+```
+
+### 4. Run the Application
 
 Start the FastAPI server using Uvicorn:
 
 ```bash
-uvicorn chat:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
 The `--reload` flag enables auto-reloading on code changes, which is useful for development.
 
-### 6. Access the Application
+### 5. Access the Application
 
 Open your web browser and navigate to:
 
@@ -90,13 +72,13 @@ You should now see the chat interface and be able to interact with the chatbot.
 To run tests, use the following command:
 
 ```bash
-pytest
+uv run pytest
 ```
 
 This will execute all tests in the `tests/` directory. For measuring test coverage, you can use `pytest-cov` by running:
 
 ```bash
-pytest --cov=app
+uv run pytest --cov=app
 ```
 
 This command will provide a report on the test coverage for the application.
@@ -106,9 +88,8 @@ This command will provide a report on the test coverage for the application.
 If you encounter any issues:
 
 1. Ensure you're using Python 3.10 or higher.
-2. Make sure your virtual environment is activated when installing dependencies and running the app.
-3. Check that all required dependencies are installed correctly.
-4. If you encounter any "Module not found" errors, try reinstalling the dependencies.
+2. Check that all required dependencies are installed correctly by re-running `uv sync`.
+3. If you encounter any "Module not found" errors, try re-running `uv sync`.
 
 ## Contributing
 
