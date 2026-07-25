@@ -13,9 +13,21 @@ class RAGService:
         self, query: str, top_k: int = 5
     ) -> Tuple[str, List[RagCitation]]:
         results = await self.vector_store.query(query, top_k)
-        context = "\n".join([result.content for result in results])
+        context = "\n\n".join(
+            [
+                f"Source: {result.metadata.title or result.metadata.source}"
+                f"{f' by {result.metadata.authors}' if result.metadata.authors else ''}\n"
+                f"{result.content}"
+                for result in results
+            ]
+        )
         citations = [
-            RagCitation(source=result.metadata.source, content=result.content)
+            RagCitation(
+                source=result.metadata.source,
+                content=result.content,
+                title=result.metadata.title,
+                authors=result.metadata.authors,
+            )
             for result in results
         ]
         return context, citations
