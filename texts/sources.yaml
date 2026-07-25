@@ -4,78 +4,97 @@
 # `origin` here means where the text came from (e.g. a website or archive) —
 # not to be confused with the `source` field ingestion writes on every chunk
 # in Chroma, which is always the file's own relative path within texts/.
+#
+# `license` records why the file is allowed to be committed at all — confirm
+# this (e.g. "Public Domain") before adding a new file's allowlist entry to
+# .gitignore.
 
 a_plain_pathway.txt:
   title: "A Plain Pathway"
   authors: ["Stephen Crisp"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 doctrinal_works_vol_I.txt:
   title: "Doctrinal Books of George Fox, Volume I"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 doctrinal_works_vol_II.txt:
   title: "Doctrinal Books of George Fox, Volume II"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 doctrinal_works_vol_III.txt:
   title: "Doctrinal Books of George Fox, Volume III"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 epistles_of_george_fox_vol_I.txt:
   title: "The Epistles of George Fox, Volume I"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 epistles_of_george_fox_vol_II.txt:
   title: "The Epistles of George Fox, Volume II"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 meditations_and_experiences.txt:
   title: "Meditations and Experiences"
   authors: ["William Shewen"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 no_cross_no_crown.txt:
   title: "No Cross, No Crown"
   authors: ["William Penn"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 primitive_christianity_revived.txt:
   title: "Primitive Christianity Revived"
   authors: ["William Penn"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 selections_from_the_journal_of_george_fox.txt:
   title: "Selections from the Journal of George Fox"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 the_great_mystery_of_the_great_whore.text:
   title: "The Great Mystery of the Great Whore Unfolded"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 the_journal_of_george_fox.txt:
   title: "The Journal of George Fox"
   authors: ["George Fox"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 there_is_a_spirit_which_i_feel.txt:
   title: "There is a Spirit Which I Feel"
   authors: ["James Nayler"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 waiting_upon_the_lord.txt:
   title: "Waiting Upon the Lord"
   authors: ["Robert Barclay"]
   origin: "Friends Library"
+  license: "Public Domain"
 
 walk_in_the_spirit.txt:
   title: "Walk in the Spirit"
   authors: ["Hugh Turford"]
   origin: "Friends Library"
+  license: "Public Domain"

@@ -164,7 +164,25 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Avoid committing text files in the texts folder
+# Quaker source texts: ignored by default, allowlisted below one at a time.
+# Confirm public domain / license status in texts/sources.yaml before adding
+# a new file here.
 texts/*.txt
+texts/*.text
+!texts/a_plain_pathway.txt
+!texts/doctrinal_works_vol_I.txt
+!texts/doctrinal_works_vol_II.txt
+!texts/doctrinal_works_vol_III.txt
+!texts/epistles_of_george_fox_vol_I.txt
+!texts/epistles_of_george_fox_vol_II.txt
+!texts/meditations_and_experiences.txt
+!texts/no_cross_no_crown.txt
+!texts/primitive_christianity_revived.txt
+!texts/selections_from_the_journal_of_george_fox.txt
+!texts/the_great_mystery_of_the_great_whore.text
+!texts/the_journal_of_george_fox.txt
+!texts/there_is_a_spirit_which_i_feel.txt
+!texts/waiting_upon_the_lord.txt
+!texts/walk_in_the_spirit.txt
 
 
