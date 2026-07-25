@@ -55,7 +55,7 @@ def build_metadata(source: str, source_catalog: dict) -> Metadata:
     entry = source_catalog.get(source) or {}
     if entry.get("title"):
         metadata["title"] = entry["title"]
-    if entry.get("authors"):
+    if isinstance(entry.get("authors"), list):
         metadata["authors"] = "; ".join(entry["authors"])
     if entry.get("origin"):
         metadata["origin"] = entry["origin"]
