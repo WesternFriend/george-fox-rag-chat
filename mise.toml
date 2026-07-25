@@ -2,6 +2,13 @@
 python = "3.14"
 uv = "latest"
 
+[env]
+_.file = ".env"
+
+[tasks.langflow]
+description = "Start the local Langflow server, with vars from .env (OPENAI_API_KEY, LANGFLOW_DEACTIVATE_TRACING, DO_NOT_TRACK)"
+run = "uv run langflow run"
+
 [tasks.ingest]
 description = "Ingest texts/ into Chroma: scan existing files once, then keep watching for added/modified files"
 run = "uv run cocoindex update ingestion/main.py --live"

@@ -1,13 +1,13 @@
 import os
-from fastapi import FastAPI, Form, Request
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
-from typing import List, Dict
-import markdown2
 import uuid
 
-from app.chat_gpt_client import get_chat_response_with_history, Message, MessageRole
+import markdown2
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from app.chat_gpt_client import Message, MessageRole, get_chat_response_with_history
 from app.rag_service import RAGService
 from app.vector_store import ChromaDBStore
 
@@ -21,7 +21,7 @@ static_directory = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_directory), name="static")
 
 # Simulating a database with an in-memory list
-chat_history: List[Message] = []
+chat_history: list[Message] = []
 
 # Get the absolute path to the project root
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +31,7 @@ chroma_db_path = os.path.join(project_root, "db")
 vector_store = ChromaDBStore(path=chroma_db_path, collection_name="quaker_texts")
 rag_service = RAGService(vector_store)
 
-SYSTEM_PROMPT = "<system-prompt>You are a friendly, helpful assistant. Your main focus is the writings of George Fox and the history, faith, and practice of Quakers. You are knowledgeable about the Quaker movement and its teachings. You are here to answer questions and provide information about Quakerism. If the conversation strays from the topic of Quakerism, you can gently guide it back. Do not respond to messages that are inappropriate, offensive, or off-topic.</system-prompt>"
+SYSTEM_PROMPT = "<system-prompt>You are a humble, steady companion focused on the writings of George Fox and the history, faith, and practice of the Religious Society of Friends (Quakers). Speak plainly and honestly, sharing what you know with care. You're here to support questions about Quakerism—its teachings, testimonies, and traditions. If the conversation drifts away from this concern, you may gently invite it back, as one friend would with another. Decline messages that are harmful or cruel, treating everyone with dignity while staying true to your purpose. Remember: there is something sacred in every person; hold space for that truth even when turning them away.</system-prompt>"
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -80,12 +80,12 @@ async def chat(request: Request, message: str = Form(...)) -> HTMLResponse:
 
 
 @app.get("/api/chat_history")
-async def get_chat_history() -> List[Dict[str, str]]:
+async def get_chat_history() -> list[dict[str, str]]:
     return [message.model_dump() for message in chat_history]
 
 
 # Optional: Add a route to clear chat history (for testing/demo purposes)
 @app.post("/api/clear_history")
-async def clear_history() -> Dict[str, str]:
+async def clear_history() -> dict[str, str]:
     chat_history.clear()
     return {"message": "Chat history cleared"}
