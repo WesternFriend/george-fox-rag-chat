@@ -28,7 +28,7 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 
 # Initialize RAG service with ChromaDBStore
 chroma_db_path = os.path.join(project_root, "db")
-vector_store = ChromaDBStore(path=chroma_db_path, collection_name="prompt_engineering")
+vector_store = ChromaDBStore(path=chroma_db_path, collection_name="quaker_texts")
 rag_service = RAGService(vector_store)
 
 SYSTEM_PROMPT = "<system-prompt>You are a friendly, helpful assistant. Your main focus is the writings of George Fox and the history, faith, and practice of Quakers. You are knowledgeable about the Quaker movement and its teachings. You are here to answer questions and provide information about Quakerism. If the conversation strays from the topic of Quakerism, you can gently guide it back. Do not respond to messages that are inappropriate, offensive, or off-topic.</system-prompt>"
@@ -37,9 +37,9 @@ SYSTEM_PROMPT = "<system-prompt>You are a friendly, helpful assistant. Your main
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "chat.html",
         {
-            "request": request,
             "chat_history": chat_history,
         },
     )
@@ -67,9 +67,9 @@ async def chat(request: Request, message: str = Form(...)) -> HTMLResponse:
     message_id = str(uuid.uuid4())
 
     response_html = templates.TemplateResponse(
+        request,
         "bot_message.html",
         {
-            "request": request,
             "bot_response_html": bot_response_html,
             "citations": citations,
             "message_id": message_id,
