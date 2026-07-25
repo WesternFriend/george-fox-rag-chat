@@ -1,5 +1,4 @@
 import asyncio
-import os
 from abc import ABC, abstractmethod
 import random
 from typing import List
@@ -16,6 +15,8 @@ load_dotenv()
 class VectorStoreMetadata(BaseModel):
     score: float = Field(..., description="Relevance score of the document")
     source: str = Field(..., description="Source of the document")
+    title: str | None = Field(None, description="Title of the source text")
+    authors: str | None = Field(None, description="Author(s) of the source text")
 
 
 class VectorStoreResult(BaseModel):
@@ -88,12 +89,14 @@ class ChromaDBStore(VectorStore):
             path=path, settings=Settings(allow_reset=True)
         )
 
-        openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-            api_key=os.getenv("OPENAI_API_KEY"), model_name="text-embedding-3-small"
-        )
+        # Local ONNX MiniLM model (all-MiniLM-L6-v2) — runs offline, no OpenAI call.
+        # Must match the embedding function used by the ingestion pipeline
+        # (ingestion/main.py) so query-time and stored vectors are comparable.
+        local_ef = embedding_functions.DefaultEmbeddingFunction()
 
         self.collection = self.client.get_or_create_collection(
-            name=collection_name, embedding_function=openai_ef
+            name=collection_name,
+            embedding_function=local_ef,  # type: ignore[arg-type]  # chromadb's own EmbeddingFunction stubs are inconsistent with its built-in implementations
         )
 
     async def query(self, query: str, top_k: int = 5) -> List[VectorStoreResult]:
@@ -125,6 +128,8 @@ class ChromaDBStore(VectorStore):
                     metadata=VectorStoreMetadata(
                         score=similarity_score,
                         source=metadata.get("source", f"document_{i}"),
+                        title=metadata.get("title"),
+                        authors=metadata.get("authors"),
                     ),
                 )
             )

@@ -1,9 +1,13 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
 class RagCitation(BaseModel):
     source: str
     content: str
+    title: Optional[str] = None
+    authors: Optional[str] = None
 
     def __str__(self):
         # Truncate content for display

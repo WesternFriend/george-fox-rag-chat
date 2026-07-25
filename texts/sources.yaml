@@ -1,0 +1,81 @@
+# Per-file metadata used to attribute ingested chunks to a title and
+# author(s), keyed by filename relative to texts/.
+#
+# `origin` here means where the text came from (e.g. a website or archive) —
+# not to be confused with the `source` field ingestion writes on every chunk
+# in Chroma, which is always the file's own relative path within texts/.
+
+a_plain_pathway.txt:
+  title: "A Plain Pathway"
+  authors: ["Stephen Crisp"]
+  origin: "Friends Library"
+
+doctrinal_works_vol_I.txt:
+  title: "Doctrinal Books of George Fox, Volume I"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+doctrinal_works_vol_II.txt:
+  title: "Doctrinal Books of George Fox, Volume II"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+doctrinal_works_vol_III.txt:
+  title: "Doctrinal Books of George Fox, Volume III"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+epistles_of_george_fox_vol_I.txt:
+  title: "The Epistles of George Fox, Volume I"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+epistles_of_george_fox_vol_II.txt:
+  title: "The Epistles of George Fox, Volume II"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+meditations_and_experiences.txt:
+  title: "Meditations and Experiences"
+  authors: ["William Shewen"]
+  origin: "Friends Library"
+
+no_cross_no_crown.txt:
+  title: "No Cross, No Crown"
+  authors: ["William Penn"]
+  origin: "Friends Library"
+
+primitive_christianity_revived.txt:
+  title: "Primitive Christianity Revived"
+  authors: ["William Penn"]
+  origin: "Friends Library"
+
+selections_from_the_journal_of_george_fox.txt:
+  title: "Selections from the Journal of George Fox"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+the_great_mystery_of_the_great_whore.text:
+  title: "The Great Mystery of the Great Whore Unfolded"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+the_journal_of_george_fox.txt:
+  title: "The Journal of George Fox"
+  authors: ["George Fox"]
+  origin: "Friends Library"
+
+there_is_a_spirit_which_i_feel.txt:
+  title: "There is a Spirit Which I Feel"
+  authors: ["James Nayler"]
+  origin: "Friends Library"
+
+waiting_upon_the_lord.txt:
+  title: "Waiting Upon the Lord"
+  authors: ["Robert Barclay"]
+  origin: "Friends Library"
+
+walk_in_the_spirit.txt:
+  title: "Walk in the Spirit"
+  authors: ["Hugh Turford"]
+  origin: "Friends Library"

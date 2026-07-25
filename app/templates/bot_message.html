@@ -16,7 +16,18 @@
                     <h6 class="card-subtitle mb-2 text-muted">Sources:</h6>
                     <ul class="list-group list-group-flush">
                         {% for citation in citations %}
-                            <li class="list-group-item">{{ citation.source }}: {{ citation.content[:100] }}...</li>
+                            <li class="list-group-item">
+                                <details>
+                                    <summary>
+                                        {% if citation.title %}
+                                            <strong>{{ citation.title }}</strong>{% if citation.authors %} &mdash; {{ citation.authors }}{% endif %}
+                                        {% else %}
+                                            {{ citation.source }}
+                                        {% endif %}
+                                    </summary>
+                                    <p class="mt-2 mb-0">{{ citation.content }}</p>
+                                </details>
+                            </li>
                         {% endfor %}
                     </ul>
                 </div>

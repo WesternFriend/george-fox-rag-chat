@@ -10,9 +10,5 @@ description = "Start the local Langflow server, with vars from .env (OPENAI_API_
 run = "uv run langflow run"
 
 [tasks.ingest]
-description = "Ingest texts/ into Chroma: scan existing files once, then keep watching for added/modified files"
-run = "uv run cocoindex update ingestion/main.py --live"
-
-[tasks."ingest:once"]
-description = "Ingest texts/ into Chroma once and exit (no watching) — for CI or a manual one-off rebuild"
-run = "uv run cocoindex update ingestion/main.py"
+description = "Chunk and embed texts/ into the Chroma quaker_texts collection"
+run = "uv run python -m ingestion.main"
