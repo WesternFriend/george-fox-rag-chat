@@ -1,0 +1,11 @@
+[tools]
+python = "3.14"
+uv = "latest"
+
+[tasks.ingest]
+description = "Ingest texts/ into Chroma: scan existing files once, then keep watching for added/modified files"
+run = "uv run cocoindex update ingestion/main.py --live"
+
+[tasks."ingest:once"]
+description = "Ingest texts/ into Chroma once and exit (no watching) — for CI or a manual one-off rebuild"
+run = "uv run cocoindex update ingestion/main.py"
