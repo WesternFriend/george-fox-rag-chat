@@ -133,3 +133,10 @@ body {
     background-color: #4a4a4a;
     border-color: #b0b0b0;
 }
+
+/* Listen/Stop (read-aloud) button while audio is playing */
+.tts-toggle--playing {
+    color: #ffffff;
+    background-color: var(--user-message-bg);
+    border-color: var(--user-message-bg);
+}

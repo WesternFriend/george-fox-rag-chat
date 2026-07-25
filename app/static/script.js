@@ -52,3 +52,21 @@ window.onload = function() {
     var chatContainer = document.getElementById('chat-container');
     chatContainer.scrollTop = chatContainer.scrollHeight;
 };
+
+// "Prefer shorter replies for listening" checkbox — persisted client-side only
+// (localStorage), consistent with this app's no-server-persistence design for
+// UI preferences. Restored on load, saved on every change.
+var AUDIO_MODE_STORAGE_KEY = 'gfrag_audio_mode';
+
+document.addEventListener('DOMContentLoaded', function() {
+    var audioModeCheckbox = document.getElementById('audio-mode-checkbox');
+    if (!audioModeCheckbox) {
+        return;
+    }
+
+    audioModeCheckbox.checked = localStorage.getItem(AUDIO_MODE_STORAGE_KEY) === 'true';
+
+    audioModeCheckbox.addEventListener('change', function() {
+        localStorage.setItem(AUDIO_MODE_STORAGE_KEY, audioModeCheckbox.checked ? 'true' : 'false');
+    });
+});

@@ -1,13 +1,14 @@
 [tools]
+node = "24"
 python = "3.14"
 uv = "latest"
 
 [env]
 _.file = ".env"
 
-[tasks.langflow]
-description = "Start the local Langflow server, with vars from .env (OPENAI_API_KEY, LANGFLOW_DEACTIVATE_TRACING, DO_NOT_TRACK)"
-run = "uv run langflow run"
+[tasks.dev]
+description = "Run the FastAPI dev server with auto-reload"
+run = "uv run uvicorn app.main:app --reload"
 
 [tasks.ingest]
 description = "Chunk and embed texts/ into the Chroma quaker_texts collection"
