@@ -72,6 +72,25 @@ without literally roleplaying a meeting for worship.
 - Pre-existing verbatim-quotation-with-attribution requirement is the concrete mechanism
   for "sources as material brought into the conversation," not restated here.
 
+**Prompt-tuning history worth knowing before editing further** — the balance between
+"conversational and short" and "actually grounded in a quotation" has swung twice:
+1. An early version of the "Conversational posture" and "Length" sections pushed hard
+   toward brevity with no counterweight, and the model started skipping retrieved
+   passages almost entirely — replies became generic explanation-plus-query, with no
+   verbatim grounding even when a clearly relevant passage was retrieved.
+2. Tightening "Grounding in the historic texts" to require active effort helped some,
+   but the real lever turned out to be elsewhere: the "Stacking every move at once"
+   anti-pattern bullet listed quoting as one of five equally-optional moves ("pick one,
+   maybe two"), and "Depth over cliché" pushed a question *instead of* an explanation —
+   together they gave the model permission to satisfy "conversational and short" with
+   query-only replies, dropping the quote rather than the generic explanation around it.
+   The fix (current prompt) reframes quote+query as the *normal pairing* for a
+   substantive reply, and says explicitly that a relevant quote should replace the
+   model's own paraphrase, not compete with it as an alternate move.
+
+If a future pass finds grounding thin again, check this dynamic first — it's easy for a
+brevity-focused edit to quietly re-introduce it.
+
 ## 4. Guardrails
 
 Leaning toward warmth, depth, and personal disclosure raises the surface area for harm if
@@ -104,3 +123,34 @@ naturally, or does it feel bolted-on and repetitive; do quotations do real inter
 work or sit inert), not automation. `tests/test_main.py` continues to cover the
 mechanically-checkable pieces this spec touches indirectly (citation presence, prompt
 wiring) but does not and should not try to assert on prose tone.
+
+`scripts/prompt_playground.py` (`mise run playground`) is the tool for that manual
+review: it runs the real `ChromaDBStore` + `RAGService` (query expansion → retrieval →
+rerank) + OpenAI call, outside the FastAPI/session/HTML layer, and prints each pipeline
+stage separately — the expanded query and topics, pre-rerank candidates with scores,
+post-rerank kept passages (`--show-context` for full passage text), per-stage timing, and
+finally the response — so retrieval, reranking, and generation can each be judged
+independently. Use it to test prompt edits before touching the UI.
+
+**Known rough edges, observed via that tool:**
+- **Quote presence was non-deterministic; a second tuning pass improved it substantially
+  for well-retrieved queries.** The first fix (quote+query as the default pairing, not
+  competing options) took "that of God in everyone" from 1-of-3 trials quoting to 4-of-4
+  after adding an explicit verbatim-precision instruction (exact tense/pronouns/
+  punctuation, no bracketed edits — quote a shorter self-contained clause or introduce
+  context in your own sentence instead of altering their words) and clarifying that
+  "the query can carry most of the reply" is about trimming surrounding explanation, not
+  about whether to quote. The same pass also resolved the verbatim-drift cases noted
+  earlier (a bracketed antecedent, a tense change) — the 4-of-4 re-run reproduced source
+  text exactly, brackets included nowhere.
+- **Retrieval quality was the ceiling — now addressed by a query-expansion + rerank
+  pipeline** (`docs/specifications/retrieval_pipeline.md`, implemented). The "how did Fox
+  think about discernment" query that ran 0-of-3 under single-stage retrieval now retrieves
+  candidates scoring 0.65-0.69 (vs. mostly editorial/biographical noise before) and surfaces
+  a genuinely relevant William Penn passage every trial; generation picked up verbatim
+  fragments from it in 2-of-2 follow-up trials. The known-good "that of God in everyone"
+  query didn't regress. Two residual notes: reranking isn't perfectly precise yet (a couple
+  of biographical passages still slip through alongside the good one), and generation still
+  favors short embedded fragments over a full attributed block quote on this query — a
+  generation-prompt nuance to revisit, distinct from the retrieval fix. See
+  `retrieval_pipeline.md`'s validation-results note for the full data.
