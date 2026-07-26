@@ -72,9 +72,7 @@ document.body.addEventListener('htmx:responseError', function(event) {
         // insert as markup since it's our own template output, not user input.
         errorNode.innerHTML = xhr.responseText;
     } else {
-        var fallback = document.createElement('div');
-        fallback.className = 'message bot-message card mb-3';
-        var fallbackBody = document.createElement('div');
+        fallback.className = 'message bot-message card mb-3 show';
         fallbackBody.className = 'card-body';
         var fallbackText = document.createElement('p');
         fallbackText.className = 'mb-0';
