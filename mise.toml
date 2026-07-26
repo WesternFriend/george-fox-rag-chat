@@ -15,3 +15,15 @@ run = "uv run uvicorn app.main:app --reload"
 [tasks.ingest]
 description = "Chunk and embed texts/ into the Chroma quaker_texts collection"
 run = "uv run python -m ingestion.main"
+
+[tasks.upload-db]
+description = "Upload app/db/ to DigitalOcean Spaces (run after ingestion)"
+run = "uv run python scripts/upload_spaces.py db"
+
+[tasks.upload-onnx]
+description = "Upload ONNX embedding model to Spaces (run after bumping chromadb version)"
+run = "uv run python scripts/upload_spaces.py onnx"
+
+[tasks.upload-all]
+description = "Upload both ChromaDB and ONNX model to Spaces"
+run = "uv run python scripts/upload_spaces.py all"
