@@ -27,3 +27,7 @@ run = "uv run python scripts/upload_spaces.py onnx"
 [tasks.upload-all]
 description = "Upload both ChromaDB and ONNX model to Spaces"
 run = "uv run python scripts/upload_spaces.py all"
+
+[tasks.playground]
+description = "Interactive CLI for tuning system_prompt.md against the real RAG + OpenAI pipeline"
+run = "uv run python scripts/prompt_playground.py --repl"

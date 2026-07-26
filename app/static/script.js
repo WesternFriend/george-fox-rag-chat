@@ -82,6 +82,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.starter-prompt-btn').forEach(function(button) {
         button.addEventListener('click', function() {
             messageInput.value = button.dataset.prompt;
+            // The chat container is tall (70vh) and often pushes the input
+            // below the fold, so a plain .focus() can be visually silent —
+            // scroll it into view first so the fill is obvious.
+            messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
             messageInput.focus();
         });
     });

@@ -1,8 +1,14 @@
-from typing import List, Tuple
+import os
+from typing import List, Optional, Tuple
 
 from app.vector_store import VectorStore
 from app.chat_gpt_client import Message, MessageRole
 from app.models import RagCitation
+from app.query_expansion import expand_query
+from app.reranker import rerank
+
+RETRIEVAL_CANDIDATE_K = int(os.getenv("RETRIEVAL_CANDIDATE_K", "12"))
+RETRIEVAL_FINAL_K = int(os.getenv("RETRIEVAL_FINAL_K", "5"))
 
 
 class RAGService:
@@ -10,9 +16,15 @@ class RAGService:
         self.vector_store = vector_store
 
     async def get_relevant_context(
-        self, query: str, top_k: int = 5
-    ) -> Tuple[str, List[RagCitation]]:
-        results = await self.vector_store.query(query, top_k)
+        self,
+        query: str,
+        chat_history: Optional[List[Message]] = None,
+        top_k: int = RETRIEVAL_FINAL_K,
+    ) -> Tuple[str, List[RagCitation], List[str]]:
+        expanded = await expand_query(query, chat_history or [])
+        candidates = await self.vector_store.query(expanded.query, RETRIEVAL_CANDIDATE_K)
+        results = await rerank(expanded.query, candidates, keep_k=top_k)
+
         context = "\n\n".join(
             [
                 f"Source: {result.metadata.title or result.metadata.source}"
@@ -30,17 +42,19 @@ class RAGService:
             )
             for result in results
         ]
-        return context, citations
+        return context, citations, expanded.topics
 
     async def prepare_messages_with_sources(
         self, system_prompt: str, chat_history: List[Message], user_message: str
     ) -> Tuple[List[Message], List[RagCitation]]:
-        context, citations = await self.get_relevant_context(user_message)
+        context, citations, topics = await self.get_relevant_context(
+            user_message, chat_history
+        )
 
         prepared_messages = [
             Message(
                 role=MessageRole.system,
-                content=f"{system_prompt}\n\nRelevant context: {context}",
+                content=f"{system_prompt}\n\nRelevant context: {context}{_topics_note(topics)}",
             ),
             *chat_history,
             Message(role=MessageRole.user, content=user_message),
@@ -52,15 +66,21 @@ class RAGService:
     async def prepare_messages(
         self, system_prompt: str, chat_history: List[Message], user_message: str
     ) -> List[Message]:
-        context, _ = await self.get_relevant_context(user_message)
+        context, _, topics = await self.get_relevant_context(user_message, chat_history)
 
         prepared_messages = [
             Message(
                 role=MessageRole.system,
-                content=f"{system_prompt}\n\nRelevant context: {context}",
+                content=f"{system_prompt}\n\nRelevant context: {context}{_topics_note(topics)}",
             ),
             *chat_history,
             Message(role=MessageRole.user, content=user_message),
         ]
 
         return prepared_messages
+
+
+def _topics_note(topics: List[str]) -> str:
+    if not topics:
+        return ""
+    return f"\nRelated topics considered: {', '.join(topics)}"
