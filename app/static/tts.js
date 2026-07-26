@@ -176,9 +176,14 @@ export class TTSController {
 
     if (!this._isCurrent(messageId, token)) return;
 
+    const audio = this._getAudio(messageId);
+    if (!audio) {
+      this._handleFailure(messageId, token, TTS_STATUS_MESSAGE.UNAVAILABLE);
+      return;
+    }
+
     const objectUrl = URL.createObjectURL(blob);
     entry.objectUrl = objectUrl;
-    const audio = this._getAudio(messageId);
     audio.src = objectUrl;
     this._bindEnded(messageId, audio);
 
@@ -191,14 +196,22 @@ export class TTSController {
       if (this._isCurrent(messageId, token)) {
         this._handleFailure(messageId, token, TTS_STATUS_MESSAGE.UNAVAILABLE);
       } else {
-        this._revoke(messageId);
+        // Superseded by a newer invocation while we were awaiting play() —
+        // entry.objectUrl/audio.src may already belong to that newer
+        // invocation, so only clean up the URL *this* invocation created,
+        // and don't touch the (possibly now-different) shared <audio>.
+        this._revokeUrl(messageId, objectUrl);
       }
       return;
     }
 
     if (!this._isCurrent(messageId, token)) {
-      audio.pause();
-      this._revoke(messageId);
+      // Same reasoning as above: only pause the element if it's still
+      // playing *our* URL — a newer invocation may already have moved it on.
+      if (audio.src === objectUrl) {
+        audio.pause();
+      }
+      this._revokeUrl(messageId, objectUrl);
       return;
     }
     this._setState(messageId, TTS_STATE.PLAYING);
@@ -250,6 +263,21 @@ export class TTSController {
     return this._entry(messageId).requestToken === token;
   }
 
+  /**
+   * Revokes a *specific* object URL — used by a stale (superseded) _start
+   * invocation cleaning up after itself. Unlike _revoke(messageId), this
+   * never touches entry.objectUrl unless it still points at this exact url,
+   * so it can't clobber a newer invocation's URL that has since taken over.
+   */
+  _revokeUrl(messageId, url) {
+    if (!url) return;
+    URL.revokeObjectURL(url);
+    const entry = this._entry(messageId);
+    if (entry.objectUrl === url) {
+      entry.objectUrl = null;
+    }
+  }
+
   _revoke(messageId) {
     const entry = this._entry(messageId);
     if (entry.objectUrl) {
@@ -263,15 +291,21 @@ export class TTSController {
 
     const button = this._getButton(messageId);
     if (button) {
+      // bot_message.html wraps the label in a .tts-toggle-label span (a
+      // future CSS/markup hook); update that in place instead of clobbering
+      // it via button.textContent, which would silently replace the span
+      // with a bare text node the first time state changes. Falls back to
+      // the button itself if that span isn't present.
+      const label = button.querySelector(".tts-toggle-label") || button;
       if (state === TTS_STATE.PLAYING) {
-        button.textContent = TTS_BUTTON_LABEL.PLAYING;
+        label.textContent = TTS_BUTTON_LABEL.PLAYING;
         button.setAttribute("aria-label", TTS_ARIA_LABEL.PLAYING);
         button.classList.add(TTS_PLAYING_CLASS);
       } else if (state === TTS_STATE.LOADING) {
-        button.textContent = TTS_BUTTON_LABEL.LOADING;
+        label.textContent = TTS_BUTTON_LABEL.LOADING;
         button.classList.remove(TTS_PLAYING_CLASS);
       } else {
-        button.textContent = TTS_BUTTON_LABEL.IDLE;
+        label.textContent = TTS_BUTTON_LABEL.IDLE;
         button.setAttribute("aria-label", TTS_ARIA_LABEL.IDLE);
         button.classList.remove(TTS_PLAYING_CLASS);
       }

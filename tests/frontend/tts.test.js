@@ -52,7 +52,7 @@ function deferred() {
   return { promise, resolve };
 }
 
-function makeHarness({ fetchImpl, playImpl, errorResetDelayMs = 10 } = {}) {
+function makeHarness({ fetchImpl, playImpl, errorResetDelayMs = 10, setTimeoutImpl } = {}) {
   const button = makeButton();
   const status = document.createElement("div");
   const audio = makeFakeAudio({ playImpl });
@@ -62,6 +62,7 @@ function makeHarness({ fetchImpl, playImpl, errorResetDelayMs = 10 } = {}) {
     getAudio: () => audio,
     getStatus: () => status,
     errorResetDelayMs,
+    setTimeoutImpl,
   });
   return { controller, button, status, audio };
 }
@@ -96,6 +97,28 @@ describe("TTSController happy path", () => {
     expect(controller.getState("m1")).toBe(TTS_STATE.IDLE);
     expect(button.textContent).toBe(TTS_BUTTON_LABEL.IDLE);
     expect(global.URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
+  });
+
+  it("updates the .tts-toggle-label span in place rather than replacing it", async () => {
+    // Mirrors bot_message.html's real markup: <button><span class="tts-toggle-label">...
+    const button = makeButton();
+    const label = document.createElement("span");
+    label.className = "tts-toggle-label";
+    label.textContent = TTS_BUTTON_LABEL.IDLE;
+    button.appendChild(label);
+
+    const fetchImpl = vi.fn().mockResolvedValue(blobResponse());
+    const controller = new TTSController({
+      fetchImpl,
+      getButton: () => button,
+      getAudio: () => makeFakeAudio(),
+      getStatus: () => document.createElement("div"),
+    });
+
+    await controller.handleClick("m1");
+
+    expect(button.contains(label)).toBe(true); // span survived the state change
+    expect(label.textContent).toBe(TTS_BUTTON_LABEL.PLAYING);
   });
 
   it("play() starts playback for an idle message, same as a click", async () => {
@@ -153,6 +176,46 @@ describe("cancel / stop", () => {
     await firstClick;
 
     expect(controller.getState("m1")).toBe(TTS_STATE.IDLE);
+  });
+
+  it("a stale invocation's late play() settlement only cleans up its own URL, never a newer invocation's", async () => {
+    // Distinct URLs per call — the default beforeEach mock returns a fixed
+    // string for every call, which would make this invocation's own URL and
+    // a newer invocation's URL indistinguishable and defeat the test.
+    let urlCounter = 0;
+    global.URL.createObjectURL = vi.fn(() => `blob:mock-url-${++urlCounter}`);
+
+    const playDeferredA = deferred();
+    let playCalls = 0;
+    const playImpl = () => {
+      playCalls += 1;
+      return playCalls === 1 ? playDeferredA.promise : Promise.resolve();
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(blobResponse());
+    const { controller, audio } = makeHarness({ fetchImpl, playImpl });
+
+    const clickA = controller.handleClick("m1"); // A: fetch/blob resolve, then hangs at play()
+    await new Promise((r) => setTimeout(r, 0)); // flush microtasks so A reaches await audio.play()
+    expect(controller.getState("m1")).toBe(TTS_STATE.LOADING);
+    const urlA = audio.src;
+
+    await controller.handleClick("m1"); // cancel A (2nd click while loading)
+    await controller.handleClick("m1"); // start + finish B fresh (3rd click, now idle)
+    expect(controller.getState("m1")).toBe(TTS_STATE.PLAYING);
+    const urlB = audio.src;
+    expect(urlB).not.toBe(urlA);
+
+    audio.pause.mockClear();
+    global.URL.revokeObjectURL.mockClear();
+
+    playDeferredA.resolve(); // A's now-stale play() call finally settles
+    await clickA;
+
+    // B's playback must be completely undisturbed by A's late cleanup.
+    expect(controller.getState("m1")).toBe(TTS_STATE.PLAYING);
+    expect(audio.src).toBe(urlB);
+    expect(audio.pause).not.toHaveBeenCalled();
+    expect(global.URL.revokeObjectURL).not.toHaveBeenCalledWith(urlB);
   });
 
   it("swallows a genuine AbortError from a cancelled fetch without an error state", async () => {
@@ -230,6 +293,23 @@ describe("error handling", () => {
     expect(statusEl.textContent).toBe(expectedMessage);
   });
 
+  it("fails cleanly (not stuck loading) when the <audio> element is missing", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(blobResponse());
+    const status = document.createElement("div");
+    const controller = new TTSController({
+      fetchImpl,
+      getButton: () => makeButton(),
+      getAudio: () => null,
+      getStatus: () => status,
+      errorResetDelayMs: 10,
+    });
+
+    await controller.handleClick("m1");
+
+    expect(controller.getState("m1")).toBe(TTS_STATE.ERROR);
+    expect(status.textContent).toBe(TTS_STATUS_MESSAGE.UNAVAILABLE);
+  });
+
   it("catches a rejected audio.play() promise instead of leaving a stuck spinner", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(blobResponse());
     const { controller, status } = makeHarness({
@@ -245,12 +325,18 @@ describe("error handling", () => {
 
   it("returns to idle automatically after the error reset delay", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(errorResponse(404));
-    const { controller } = makeHarness({ fetchImpl, errorResetDelayMs: 10 });
+    let scheduled;
+    const setTimeoutImpl = (callback, delay) => {
+      scheduled = { callback, delay };
+      return 0;
+    };
+    const { controller } = makeHarness({ fetchImpl, errorResetDelayMs: 10, setTimeoutImpl });
 
     await controller.handleClick("m1");
     expect(controller.getState("m1")).toBe(TTS_STATE.ERROR);
 
-    await new Promise((r) => setTimeout(r, 30));
+    expect(scheduled.delay).toBe(10);
+    scheduled.callback(); // invoke the scheduled reset directly — no real wait
 
     expect(controller.getState("m1")).toBe(TTS_STATE.IDLE);
   });

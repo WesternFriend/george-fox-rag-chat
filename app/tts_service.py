@@ -11,6 +11,8 @@ import os
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 
+import openai
+
 from app.tts_client import synthesize_speech
 
 TTS_AUDIO_CACHE_MAX_ENTRIES = int(os.getenv("TTS_AUDIO_CACHE_MAX_ENTRIES", "200"))
@@ -57,8 +59,11 @@ class TTSService:
             async with self._semaphore:  # bounds concurrent upstream calls, independent of the cache
                 try:
                     audio = await synthesize_speech(text)
-                except asyncio.TimeoutError:
-                    raise TTSUpstreamTimeoutError()
+                except (asyncio.TimeoutError, openai.APITimeoutError) as e:
+                    # The openai SDK raises its own APITimeoutError (not a bare
+                    # asyncio.TimeoutError) when TTS_TIMEOUT_SECONDS elapses —
+                    # both must map to 504, not fall through to the generic 502.
+                    raise TTSUpstreamTimeoutError() from e
                 except Exception as e:
                     raise TTSUpstreamError() from e
 
@@ -73,8 +78,21 @@ class TTSService:
             len(self._cache) > self._config.max_entries
             or self._cache_bytes > self._config.max_bytes
         ):
-            _, evicted = self._cache.popitem(last=False)
+            evicted_key, evicted = self._cache.popitem(last=False)
             self._cache_bytes -= len(evicted)
+            # self._locks is otherwise never pruned, which would leak one Lock
+            # per unique (session_id, message_id) ever requested, unbounded by
+            # the cache's own entry/byte limits. Only drop it if nothing
+            # currently holds it — this runs synchronously (no await since the
+            # last lock/semaphore release), so a `not locked()` snapshot here
+            # is safe: nothing else can acquire it out from under us before we
+            # delete it. Skipping a still-locked entry (the rare case of a
+            # single blob alone exceeding max_bytes, evicting the very key
+            # whose lock get_or_generate is still holding) leaves a concurrent
+            # request for that same key correctly waiting on it instead of
+            # racing a fresh, separate Lock.
+            if evicted_key in self._locks and not self._locks[evicted_key].locked():
+                del self._locks[evicted_key]
 
 
 tts_service = TTSService(TTSConfig())

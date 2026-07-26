@@ -1,6 +1,9 @@
 # Read-Aloud (Text-to-Speech) Specification
 
-Status: draft specification, not yet implemented.
+Status: implemented (see `app/tts_client.py`, `app/tts_service.py`, `app/static/tts.js`, and
+the `POST /api/messages/{message_id}/speech` route in `app/main.py`). Retained here as the
+design record — sections below describe the shipped behavior except where marked otherwise
+(e.g. §10's open questions, still open).
 
 ## 1. Purpose
 
@@ -198,23 +201,24 @@ AUDIO_RESPONSE_FORMAT = "mp3"  # fixed, not configurable — see §2, §4.3
 
 async def synthesize_speech(text: str) -> bytes:
     """Call OpenAI's speech endpoint and return raw MP3 bytes, or raise."""
-    response = await client.audio.speech.create(
+    async with client.audio.speech.with_streaming_response.create(
         model=TTS_MODEL,
         voice=TTS_VOICE,
         input=text,
         speed=TTS_SPEED,
         response_format=AUDIO_RESPONSE_FORMAT,
         timeout=TTS_TIMEOUT_SECONDS,
-    )
-    return response.content
+    ) as response:
+        return await response.read()
 ```
 
-`response.content` is written here as the intended access pattern (the SDK's binary
-response wrapper exposes `.content` as bytes), but this is unresolved against a specific
-`openai` package version and must be confirmed against whatever version is actually pinned
-in `pyproject.toml` before this is treated as final — write a two-line local script that
-calls this against a real (or recorded) response and asserts on the type during
-implementation, don't assume the doc is authoritative here.
+**Shipped, confirmed access pattern** — this superseded an earlier draft's `response.content`
+guess. OpenAI's own current documentation for this endpoint uses the SDK's
+`with_streaming_response` context-manager form; `await response.read()` inside it returns the
+full `bytes` payload, confirmed against the `openai` version pinned in `pyproject.toml`. Still
+fully buffers server-side before returning — this app doesn't stream audio through to the
+browser (§10 notes that as a future option) — so it's behaviorally equivalent to the original
+design, just using the API surface OpenAI's docs actually recommend.
 
 Doesn't swallow exceptions into a string return value, unlike
 `get_chat_response_with_history` — the caller needs to distinguish failure modes to map
@@ -542,11 +546,13 @@ one doesn't let you reason precisely about the other. Don't treat "set
 independent controls on different stages.
 
 If `max_tokens` does bind (the completion's `finish_reason` comes back as `"length"`, not
-`"stop"` — `get_chat_response_with_history` currently discards `finish_reason` entirely and
-must be changed to surface it), don't silently present the truncated text as a complete
-answer on screen *or* in audio: trim to the last sentence boundary and mark the response as
-shortened — this affects the on-screen rendering, not just TTS, since a truncated
-chat-completion output is misleading either way it's presented.
+`"stop"`), don't silently present the truncated text as a complete answer on screen *or* in
+audio: trim to the last sentence boundary and mark the response as shortened — this affects
+the on-screen rendering, not just TTS, since a truncated chat-completion output is misleading
+either way it's presented. **Shipped**: `get_chat_response_with_history` returns a
+`ChatCompletionResult(content, finish_reason)` rather than a bare string, so callers no longer
+have to discard `finish_reason` to use this function — `/chat` reads it directly and applies
+the sentence-boundary trim described above when it's `"length"`.
 
 This reduces cost on **both** legs of a turn: fewer OpenAI chat-completion output tokens
 (existing cost, incidental benefit here) and fewer TTS output audio tokens at $12/1M (§2)
@@ -891,9 +897,9 @@ Three questions from earlier drafts are now resolved, not just deferred:
   per-endpoint rate limit — shared with `/chat`'s rate limit, defined in
   [`session_isolation.md`](session_isolation.md) §12.
 
-That's the only new dependency this spec needs. `openai` is already a runtime dependency;
-verify the installed/pinned version's async speech-response API surface matches
-`response.content` (§4.1) before treating that as final.
+That's the only new dependency this spec needs. `openai` is already a runtime dependency; its
+async speech-response API surface is confirmed against the pinned version to match §4.1's
+`with_streaming_response`/`response.read()` pattern.
 
 **No markdown-handling dependency is needed.** Earlier drafts evaluated and, at different
 points, both rejected (`strip-markdown` and other small PyPI packages: unmaintained;

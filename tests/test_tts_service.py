@@ -1,8 +1,10 @@
 import asyncio
 
+import httpx
+import openai
 import pytest
 
-from app.tts_service import TTSConfig, TTSService, TTSUpstreamError
+from app.tts_service import TTSConfig, TTSService, TTSUpstreamError, TTSUpstreamTimeoutError
 
 
 @pytest.mark.asyncio
@@ -118,3 +120,38 @@ async def test_eviction_by_byte_budget(monkeypatch):
     assert ("s", "msg-1") not in service._cache
     assert ("s", "msg-2") in service._cache
     assert ("s", "msg-3") in service._cache
+
+
+@pytest.mark.asyncio
+async def test_eviction_cleans_up_the_evicted_keys_lock(monkeypatch):
+    """self._locks would otherwise grow unbounded — one Lock per unique
+    message ever requested — regardless of the cache's own entry/byte caps."""
+    async def fake_synthesize(text):
+        return text.encode()
+
+    monkeypatch.setattr("app.tts_service.synthesize_speech", fake_synthesize)
+    service = TTSService(TTSConfig(max_entries=1, max_bytes=10_000))
+
+    await service.get_or_generate("s", "msg-1", "one")
+    assert ("s", "msg-1") in service._locks
+
+    await service.get_or_generate("s", "msg-2", "two")  # evicts msg-1
+
+    assert ("s", "msg-1") not in service._cache
+    assert ("s", "msg-1") not in service._locks
+    assert ("s", "msg-2") in service._locks
+
+
+@pytest.mark.asyncio
+async def test_openai_api_timeout_error_maps_to_upstream_timeout(monkeypatch):
+    """The openai SDK raises its own APITimeoutError, not asyncio.TimeoutError,
+    when TTS_TIMEOUT_SECONDS elapses — this must still map to a 504, not fall
+    through to the generic TTSUpstreamError (502)."""
+    async def timing_out(text):
+        raise openai.APITimeoutError(request=httpx.Request("POST", "https://example.com"))
+
+    monkeypatch.setattr("app.tts_service.synthesize_speech", timing_out)
+    service = TTSService(TTSConfig())
+
+    with pytest.raises(TTSUpstreamTimeoutError):
+        await service.get_or_generate("s", "msg-1", "hello")

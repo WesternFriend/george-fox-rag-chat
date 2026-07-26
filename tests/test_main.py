@@ -340,6 +340,15 @@ def test_validate_config_rejects_out_of_range_speed(monkeypatch):
         validate_config()
 
 
+def test_validate_config_rejects_a_weak_session_secret_key(monkeypatch):
+    import app.main as main
+
+    monkeypatch.setattr(main, "SESSION_SECRET_KEY", "too-short")
+
+    with pytest.raises(RuntimeError):
+        main.validate_config()
+
+
 def test_validate_config_accepts_default_settings():
     from app.main import validate_config
 

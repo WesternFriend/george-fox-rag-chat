@@ -24,6 +24,7 @@ from app.chat_gpt_client import (
 from app.rag_service import RAGService
 from app.session import (
     CHAT_RATE_LIMIT,
+    SESSION_SECRET_KEY,
     SESSION_SWEEP_INTERVAL_SECONDS,
     TTS_RATE_LIMIT,
     SessionState,
@@ -37,6 +38,11 @@ from app.vector_store import ChromaDBStore
 
 TTS_MAX_INPUT_CHARS = int(os.getenv("TTS_MAX_INPUT_CHARS", "3800"))
 CHAT_GPT_MAX_TOKENS_AUDIO = int(os.getenv("CHAT_GPT_MAX_TOKENS_AUDIO", "800"))
+
+# A short/weak signing key defeats itsdangerous's whole "unguessable session id"
+# guarantee (session_isolation.md §3) — 32 chars matches the length of the
+# generation command .env.example itself recommends (secrets.token_urlsafe(32)).
+SESSION_SECRET_KEY_MIN_LENGTH = 32
 
 TTS_ERROR_MESSAGE_NOT_FOUND = "message not found"
 TTS_ERROR_MESSAGE_TOO_LONG = "message too long for speech synthesis"
@@ -76,9 +82,16 @@ def _trim_to_sentence_boundary(text: str) -> str:
 
 
 def validate_config() -> None:
-    """Fail fast on invalid TTS configuration, rather than surfacing it lazily on
+    """Fail fast on invalid configuration, rather than surfacing it lazily on
     the first request (session_isolation.md's posture for SESSION_SECRET_KEY,
-    extended here to TTS's env-backed settings — text_to_speech.md §6)."""
+    extended here to its own strength and to TTS's env-backed settings —
+    text_to_speech.md §6)."""
+    if len(SESSION_SECRET_KEY) < SESSION_SECRET_KEY_MIN_LENGTH:
+        raise RuntimeError(
+            f"SESSION_SECRET_KEY must be at least {SESSION_SECRET_KEY_MIN_LENGTH} "
+            "characters — generate one with: "
+            'python3 -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
     if not (0.25 <= tts_client.TTS_SPEED <= 4.0):
         raise RuntimeError(
             f"TTS_SPEED must be between 0.25 and 4.0, got {tts_client.TTS_SPEED}"
@@ -261,8 +274,8 @@ async def synthesize_message_speech(
         audio = await tts_service.get_or_generate(
             session.session_id, message_id, message.content
         )
-    except TTSUpstreamTimeoutError:
-        raise HTTPException(504, TTS_ERROR_GENERATION_TIMED_OUT)
-    except TTSUpstreamError:
-        raise HTTPException(502, TTS_ERROR_GENERATION_FAILED)
+    except TTSUpstreamTimeoutError as e:
+        raise HTTPException(504, TTS_ERROR_GENERATION_TIMED_OUT) from e
+    except TTSUpstreamError as e:
+        raise HTTPException(502, TTS_ERROR_GENERATION_FAILED) from e
     return Response(content=audio, media_type="audio/mpeg")
