@@ -110,10 +110,18 @@ Accessibility details:
 
 ### 3.1 Audio mode toggle
 
-A checkbox near the message input, labeled **"Prefer shorter replies for listening"**
-(not "audio-friendly replies" or similar — that wording read as if it enabled audio
-playback itself, when what it actually does is bias generation length; see §4.5), lets a
-user opt in *before* sending a message rather than deciding per-response. When checked:
+A checkbox above the message input (near the top of the form, for discoverability), labeled
+**"Speak responses aloud"**, lets a user opt in *before* sending a message rather than
+deciding per-response. When checked:
+
+**Label wording, revised.** An earlier draft used "Prefer shorter replies for listening"
+specifically *because* auto-play didn't exist yet — at that point the checkbox only biased
+generation length (§4.5) and never played audio on its own, so a label describing audio
+directly would have overstated what it did. That's no longer true: this same checkbox now
+also drives auto-play-on-arrival (§3, resolved from §10 open question 1), so "Speak responses
+aloud" is the more accurate label now, not a misleading one — it really does cause responses
+to be spoken. The length-biasing behavior (§4.5) is still real and still tied to this same
+checkbox, just described as internal mechanism rather than in the label itself.
 
 - It's sent with each `/chat` POST as `audio_mode`. Since HTML omits unchecked checkboxes
   from form submission entirely (there is no `audio_mode=false`), the backend must treat
@@ -130,10 +138,6 @@ user opt in *before* sending a message rather than deciding per-response. When c
   message sent while checked. This has to happen at generation time, not as a
   per-message afterthought: by the time a response already exists, it's too late to make
   it shorter without discarding and regenerating it.
-
-This also gives a natural signal for auto-play (§10 open question 1): a user who has
-explicitly opted into shorter replies has told the app they intend to listen, which is a
-stronger basis for auto-playing than guessing on every message regardless of intent.
 
 ## 4. Backend design
 

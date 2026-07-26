@@ -53,9 +53,9 @@ window.onload = function() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 };
 
-// "Prefer shorter replies for listening" checkbox — persisted client-side only
-// (localStorage), consistent with this app's no-server-persistence design for
-// UI preferences. Restored on load, saved on every change.
+// "Speak responses aloud" checkbox — persisted client-side only (localStorage),
+// consistent with this app's no-server-persistence design for UI preferences.
+// Restored on load, saved on every change.
 var AUDIO_MODE_STORAGE_KEY = 'gfrag_audio_mode';
 
 document.addEventListener('DOMContentLoaded', function() {
