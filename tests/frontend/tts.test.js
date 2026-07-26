@@ -211,10 +211,12 @@ describe("cancel / stop", () => {
     playDeferredA.resolve(); // A's now-stale play() call finally settles
     await clickA;
 
-    // B's playback must be completely undisturbed by A's late cleanup.
+    // B's playback must be completely undisturbed by A's late cleanup, while
+    // A's own (now-stale) URL still gets revoked rather than leaked.
     expect(controller.getState("m1")).toBe(TTS_STATE.PLAYING);
     expect(audio.src).toBe(urlB);
     expect(audio.pause).not.toHaveBeenCalled();
+    expect(global.URL.revokeObjectURL).toHaveBeenCalledWith(urlA);
     expect(global.URL.revokeObjectURL).not.toHaveBeenCalledWith(urlB);
   });
 
