@@ -1,4 +1,5 @@
 [tools]
+doctl = "latest"
 gh = "latest"
 node = "24"
 python = "3.14"

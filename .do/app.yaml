@@ -1,0 +1,70 @@
+# App Platform app spec for inner-light-quest
+#
+# Deploy:  doctl apps create --spec .do/app.yaml
+# Update:  doctl apps update <app-id> --spec .do/app.yaml
+#
+# SECRET env vars have no value here — set them after creation:
+#   doctl apps update <app-id> --spec ... (or via the control panel)
+# See docs/how-to/deploy.md for the full first-deploy procedure.
+
+name: inner-light-quest
+region: fra
+
+features:
+  - buildpack-stack=ubuntu-22
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+
+services:
+  - name: web
+    environment_slug: python
+    github:
+      repo: quaker-tech/inner-light-quest
+      branch: main
+      deploy_on_push: true
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    health_check:
+      http_path: /
+      # Budget for the Spaces download before uvicorn binds.
+      # Reduce once actual download time is measured in production.
+      initial_delay_seconds: 120
+      period_seconds: 30
+      timeout_seconds: 10
+      failure_threshold: 3
+    envs:
+      # --- Application secrets (set values via doctl or the control panel) ---
+      - key: OPENAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SESSION_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      # --- Spaces credentials for ChromaDB download at startup ---
+      - key: SPACES_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # --- Non-secret configuration ---
+      - key: ENVIRONMENT
+        value: production
+        scope: RUN_TIME
+        type: GENERAL
+      - key: SPACES_BUCKET
+        value: inner-light-quest-db
+        scope: RUN_TIME
+        type: GENERAL
+      - key: SPACES_REGION
+        value: fra1
+        scope: RUN_TIME
+        type: GENERAL
+      - key: SPACES_DB_PREFIX
+        value: chroma-db/
+        scope: RUN_TIME
+        type: GENERAL
