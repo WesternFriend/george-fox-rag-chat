@@ -51,7 +51,7 @@ def _sync_prefix(client, bucket: str, prefix: str, dest_dir: Path, label: str) -
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Contents", []):
             key: str = obj["Key"]
-            relative = key[len(prefix):]
+            relative = key[len(prefix) :]
             if not relative:
                 continue
             local_path = dest_dir / relative
