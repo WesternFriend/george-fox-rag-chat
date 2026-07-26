@@ -8,7 +8,7 @@ from pathlib import Path
 
 import markdown2
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi import Limiter
@@ -52,7 +52,9 @@ TTS_ERROR_GENERATION_TIMED_OUT = "speech generation timed out"
 TTS_ERROR_MISCONFIGURED = "speech generation is misconfigured"  # never returned in
 # normal operation — startup config validation (validate_config, below) rejects a
 # misconfigured deployment before it ever serves a request.
-RATE_LIMIT_ERROR_MESSAGE = "rate limit exceeded"
+RATE_LIMIT_USER_MESSAGE = (
+    "You're sending messages a bit fast — please wait a moment and try again."
+)
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -132,7 +134,19 @@ app.state.limiter = limiter
 
 
 def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
-    response = JSONResponse({"detail": RATE_LIMIT_ERROR_MESSAGE}, status_code=429)
+    # An HTML fragment (not JSONResponse) so a rate-limited /chat submission
+    # renders as a readable message rather than raw JSON if it ever reaches
+    # the page (accessibility.md §5.10) — script.js's htmx:responseError
+    # handler is what actually swaps this into the live #chat-container, since
+    # htmx doesn't auto-swap non-2xx/3xx responses. The TTS speech endpoint
+    # also uses this handler; tts.js only inspects the status code, not the
+    # body, so an HTML body doesn't affect it.
+    response = templates.TemplateResponse(
+        request,
+        "error_message.html",
+        {"error_message": RATE_LIMIT_USER_MESSAGE},
+        status_code=429,
+    )
     return limiter._inject_headers(response, request.state.view_rate_limit)
 
 

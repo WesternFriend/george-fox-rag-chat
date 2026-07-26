@@ -2,10 +2,13 @@ document.body.addEventListener('htmx:beforeRequest', function(event) {
     var message = document.getElementById('message-input').value;
     var chatContainer = document.getElementById('chat-container');
     
-    // Append user message immediately
+    // Append user message immediately. Built with createElement/textContent
+    // (not innerHTML) so the message text can never be parsed as markup.
     var userMessage = document.createElement('div');
     userMessage.className = 'message user-message';
-    userMessage.innerHTML = `<p>${message}</p>`;
+    var userMessageParagraph = document.createElement('p');
+    userMessageParagraph.textContent = message;
+    userMessage.appendChild(userMessageParagraph);
     chatContainer.appendChild(userMessage);
     
     // Trigger reflow to ensure the transition happens
@@ -44,6 +47,45 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
     newMessage.classList.add('show');
     
     // Scroll to bottom
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+});
+
+// A non-2xx/3xx response to the /chat form (e.g. a 429 rate limit, or a 500
+// from an upstream failure) isn't swapped into the DOM by htmx's default
+// responseHandling — so without this, it fails silently for a screen-reader
+// user (and sighted users see nothing happen either). Render it as a message
+// bubble instead, inside #chat-container, so it's picked up by that
+// container's role="log"/aria-live and announced like any other reply.
+document.body.addEventListener('htmx:responseError', function(event) {
+    var chatContainer = document.getElementById('chat-container');
+
+    var typingIndicator = chatContainer.querySelector('.typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+
+    var xhr = event.detail.xhr;
+    var contentType = xhr && xhr.getResponseHeader('Content-Type');
+    var errorNode = document.createElement('div');
+    if (contentType && contentType.indexOf('text/html') !== -1 && xhr.responseText) {
+        // Server-rendered fragment (app/templates/error_message.html) — safe to
+        // insert as markup since it's our own template output, not user input.
+        errorNode.innerHTML = xhr.responseText;
+    } else {
+        fallback.className = 'message bot-message card mb-3 show';
+        fallbackBody.className = 'card-body';
+        var fallbackText = document.createElement('p');
+        fallbackText.className = 'mb-0';
+        fallbackText.textContent = 'Something went wrong. Please try again.';
+        fallbackBody.appendChild(fallbackText);
+        fallback.appendChild(fallbackBody);
+        errorNode.appendChild(fallback);
+    }
+
+    while (errorNode.firstChild) {
+        chatContainer.appendChild(errorNode.firstChild);
+    }
+
     chatContainer.scrollTop = chatContainer.scrollHeight;
 });
 
