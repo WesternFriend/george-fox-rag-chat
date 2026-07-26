@@ -75,7 +75,7 @@ body {
         animation: bounce 1.3s linear infinite;
     }
 
-    .dot:nth-child(2) {
+    .dot:nth-of-type(2) {
         animation-delay: -1.1s;
     }
 
