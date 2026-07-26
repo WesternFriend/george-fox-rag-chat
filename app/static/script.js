@@ -70,3 +70,19 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem(AUDIO_MODE_STORAGE_KEY, audioModeCheckbox.checked ? 'true' : 'false');
     });
 });
+
+// Starter-prompt buttons in the initial greeting — fill the input so the
+// visitor can send it as-is or personalize it before submitting themselves.
+document.addEventListener('DOMContentLoaded', function() {
+    var messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        return;
+    }
+
+    document.querySelectorAll('.starter-prompt-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            messageInput.value = button.dataset.prompt;
+            messageInput.focus();
+        });
+    });
+});

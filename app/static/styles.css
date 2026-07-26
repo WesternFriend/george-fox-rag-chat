@@ -140,3 +140,11 @@ body {
     background-color: var(--user-message-bg);
     border-color: var(--user-message-bg);
 }
+
+/* Starter-prompt buttons in the initial greeting */
+.starter-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
