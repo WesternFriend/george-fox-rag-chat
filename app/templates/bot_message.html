@@ -3,6 +3,26 @@
         <div class="message-content">
             {{ bot_response_html | safe }}
         </div>
+        {% if response_truncated %}
+        <p class="text-muted small fst-italic mt-1 mb-0">(response shortened)</p>
+        {% endif %}
+        <div class="tts-container mt-2">
+            {% if tts_available %}
+            <button class="btn btn-sm btn-outline-secondary tts-toggle" type="button"
+                    data-message-id="{{ message_id }}"
+                    aria-label="Read this response aloud">
+                <span class="tts-toggle-label">&#128266; Listen</span>
+            </button>
+            {% else %}
+            <button class="btn btn-sm btn-outline-secondary" type="button" disabled
+                    title="This response is too long to read aloud"
+                    aria-label="Audio unavailable: this response is too long to read aloud">
+                &#128266; Listen
+            </button>
+            {% endif %}
+            <div class="visually-hidden" role="status" aria-live="polite" id="tts-status-{{ message_id }}"></div>
+            <audio id="tts-audio-{{ message_id }}"></audio>
+        </div>
         <div class="sources-container mt-3">
             <button class="btn btn-sm btn-outline-secondary" type="button" 
                     data-bs-toggle="collapse" 

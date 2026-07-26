@@ -52,3 +52,37 @@ window.onload = function() {
     var chatContainer = document.getElementById('chat-container');
     chatContainer.scrollTop = chatContainer.scrollHeight;
 };
+
+// "Speak responses aloud" checkbox — persisted client-side only (localStorage),
+// consistent with this app's no-server-persistence design for UI preferences.
+// Restored on load, saved on every change.
+var AUDIO_MODE_STORAGE_KEY = 'gfrag_audio_mode';
+
+document.addEventListener('DOMContentLoaded', function() {
+    var audioModeCheckbox = document.getElementById('audio-mode-checkbox');
+    if (!audioModeCheckbox) {
+        return;
+    }
+
+    audioModeCheckbox.checked = localStorage.getItem(AUDIO_MODE_STORAGE_KEY) === 'true';
+
+    audioModeCheckbox.addEventListener('change', function() {
+        localStorage.setItem(AUDIO_MODE_STORAGE_KEY, audioModeCheckbox.checked ? 'true' : 'false');
+    });
+});
+
+// Starter-prompt buttons in the initial greeting — fill the input so the
+// visitor can send it as-is or personalize it before submitting themselves.
+document.addEventListener('DOMContentLoaded', function() {
+    var messageInput = document.getElementById('message-input');
+    if (!messageInput) {
+        return;
+    }
+
+    document.querySelectorAll('.starter-prompt-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            messageInput.value = button.dataset.prompt;
+            messageInput.focus();
+        });
+    });
+});
